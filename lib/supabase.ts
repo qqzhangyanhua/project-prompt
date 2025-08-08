@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gsrqdvzwaqycpmxvitai.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Xd937Ccy0-8hf_ikR-945A_IG0Cy9Bs'
+const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const supabaseAnonKey: string = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  // 不在构建期抛错，避免本地未配置环境变量时无法构建；在运行期给出明确告警
+  // 配置方式见 README 的环境变量说明
+  console.warn('[Supabase] 缺少环境变量：请设置 NEXT_PUBLIC_SUPABASE_URL 与 NEXT_PUBLIC_SUPABASE_ANON_KEY')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

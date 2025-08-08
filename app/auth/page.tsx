@@ -12,6 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { signIn, signUp } from '@/lib/auth'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 export default function AuthPage() {
   const router = useRouter()
@@ -21,17 +24,33 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [activeTab, setActiveTab] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'signin')
 
-  // 表单状态
-  const [signInForm, setSignInForm] = useState({
-    email: '',
-    password: ''
+  // 表单校验 schema
+  const signInSchema = z.object({
+    email: z.string().email('请输入有效邮箱'),
+    password: z.string().min(6, '密码至少6位')
   })
 
-  const [signUpForm, setSignUpForm] = useState({
-    email: '',
-    password: '',
-    username: '',
-    confirmPassword: ''
+  const signUpSchema = z.object({
+    email: z.string().email('请输入有效邮箱'),
+    username: z.string().min(2, '用户名至少2位'),
+    password: z.string().min(6, '密码至少6位'),
+    confirmPassword: z.string()
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: '两次输入的密码不一致',
+    path: ['confirmPassword']
+  })
+
+  type SignInFormValues = z.infer<typeof signInSchema>
+  type SignUpFormValues = z.infer<typeof signUpSchema>
+
+  const signInFormMethods = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: '', password: '' }
+  })
+
+  const signUpFormMethods = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { email: '', password: '', username: '', confirmPassword: '' }
   })
 
   // 如果已登录，重定向到首页
@@ -41,66 +60,34 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, router])
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!signInForm.email || !signInForm.password) {
-      toast.error('请填写所有必填字段')
-      return
-    }
-
+  const handleSignIn = signInFormMethods.handleSubmit(async (values) => {
     setLoading(true)
     try {
-      await signIn(signInForm.email, signInForm.password)
+      await signIn(values.email, values.password)
       toast.success('登录成功')
       router.push('/')
-    } catch (error: any) {
-      toast.error(error.message || '登录失败')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '登录失败'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
-  }
+  })
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!signUpForm.email || !signUpForm.password || !signUpForm.username) {
-      toast.error('请填写所有必填字段')
-      return
-    }
-
-    if (signUpForm.password !== signUpForm.confirmPassword) {
-      toast.error('两次输入的密码不一致')
-      return
-    }
-
-    if (signUpForm.password.length < 6) {
-      toast.error('密码长度至少6位')
-      return
-    }
-
-    if (signUpForm.username.length < 2) {
-      toast.error('用户名长度至少2位')
-      return
-    }
-
+  const handleSignUp = signUpFormMethods.handleSubmit(async (values) => {
     setLoading(true)
     try {
-      await signUp(signUpForm.email, signUpForm.password, signUpForm.username)
+      await signUp(values.email, values.password, values.username)
       toast.success('注册成功，请登录')
       setActiveTab('signin')
-      // 清空注册表单
-      setSignUpForm({
-        email: '',
-        password: '',
-        username: '',
-        confirmPassword: ''
-      })
-    } catch (error: any) {
-      toast.error(error.message || '注册失败')
+      signUpFormMethods.reset()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '注册失败'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
-  }
+  })
 
   if (isAuthenticated) {
     return null // 避免闪烁
@@ -111,10 +98,10 @@ export default function AuthPage() {
       <div className="max-w-md mx-auto mt-8">
         <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-2xl font-bold text-foreground">
               欢迎使用 PromptHub
             </CardTitle>
-            <p className="text-gray-600 mt-2">
+            <p className="text-muted-foreground mt-2">
               发现和分享优质 AI 提示词
             </p>
           </CardHeader>
@@ -137,12 +124,13 @@ export default function AuthPage() {
                         id="signin-email"
                         type="email"
                         placeholder="请输入邮箱"
-                        value={signInForm.email}
-                        onChange={(e) => setSignInForm(prev => ({ ...prev, email: e.target.value }))}
                         className="pl-10"
-                        required
+                        {...signInFormMethods.register('email')}
                       />
                     </div>
+                    {signInFormMethods.formState.errors.email && (
+                      <p className="text-sm text-red-600">{signInFormMethods.formState.errors.email.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -153,10 +141,8 @@ export default function AuthPage() {
                         id="signin-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="请输入密码"
-                        value={signInForm.password}
-                        onChange={(e) => setSignInForm(prev => ({ ...prev, password: e.target.value }))}
                         className="pl-10 pr-10"
-                        required
+                        {...signInFormMethods.register('password')}
                       />
                       <button
                         type="button"
@@ -166,6 +152,9 @@ export default function AuthPage() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {signInFormMethods.formState.errors.password && (
+                      <p className="text-sm text-red-600">{signInFormMethods.formState.errors.password.message}</p>
+                    )}
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>
@@ -185,13 +174,13 @@ export default function AuthPage() {
                         id="signup-username"
                         type="text"
                         placeholder="请输入用户名"
-                        value={signUpForm.username}
-                        onChange={(e) => setSignUpForm(prev => ({ ...prev, username: e.target.value }))}
                         className="pl-10"
-                        required
-                        minLength={2}
+                        {...signUpFormMethods.register('username')}
                       />
                     </div>
+                    {signUpFormMethods.formState.errors.username && (
+                      <p className="text-sm text-red-600">{signUpFormMethods.formState.errors.username.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -202,12 +191,13 @@ export default function AuthPage() {
                         id="signup-email"
                         type="email"
                         placeholder="请输入邮箱"
-                        value={signUpForm.email}
-                        onChange={(e) => setSignUpForm(prev => ({ ...prev, email: e.target.value }))}
                         className="pl-10"
-                        required
+                        {...signUpFormMethods.register('email')}
                       />
                     </div>
+                    {signUpFormMethods.formState.errors.email && (
+                      <p className="text-sm text-red-600">{signUpFormMethods.formState.errors.email.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -218,11 +208,8 @@ export default function AuthPage() {
                         id="signup-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="请输入密码（至少6位）"
-                        value={signUpForm.password}
-                        onChange={(e) => setSignUpForm(prev => ({ ...prev, password: e.target.value }))}
                         className="pl-10 pr-10"
-                        required
-                        minLength={6}
+                        {...signUpFormMethods.register('password')}
                       />
                       <button
                         type="button"
@@ -232,6 +219,9 @@ export default function AuthPage() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {signUpFormMethods.formState.errors.password && (
+                      <p className="text-sm text-red-600">{signUpFormMethods.formState.errors.password.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -242,12 +232,13 @@ export default function AuthPage() {
                         id="signup-confirm-password"
                         type="password"
                         placeholder="请再次输入密码"
-                        value={signUpForm.confirmPassword}
-                        onChange={(e) => setSignUpForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                         className="pl-10"
-                        required
+                        {...signUpFormMethods.register('confirmPassword')}
                       />
                     </div>
+                    {signUpFormMethods.formState.errors.confirmPassword && (
+                      <p className="text-sm text-red-600">{signUpFormMethods.formState.errors.confirmPassword.message}</p>
+                    )}
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>

@@ -25,6 +25,7 @@ import type { Prompt } from "@/lib/supabase";
 import { toggleLike, toggleFavorite } from "@/lib/prompts";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useSWRConfig } from 'swr';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -33,12 +34,25 @@ interface PromptCardProps {
 
 export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
   const { isAuthenticated, user } = useAuth();
+  const { mutate } = useSWRConfig();
   const [isLiked, setIsLiked] = useState(prompt.is_liked || false);
   const [isFavorited, setIsFavorited] = useState(prompt.is_favorited || false);
   const [likesCount, setLikesCount] = useState(prompt.likes_count);
   const [favoritesCount, setFavoritesCount] = useState(prompt.favorites_count);
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const updateCaches = (patch: Partial<Prompt>) => {
+    // 更新所有 prompts 列表与 user-prompts 列表中的对应项
+    mutate(
+      (key) => Array.isArray(key) && (key[0] === 'prompts' || key[0] === 'user-prompts'),
+      (current: unknown) => {
+        if (!Array.isArray(current)) return current;
+        return (current as Prompt[]).map((p) => (p.id === prompt.id ? { ...p, ...patch } : p));
+      },
+      { revalidate: false }
+    );
+  };
 
   const handleCopy = async () => {
     try {
@@ -59,7 +73,9 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
     try {
       const newLikedState = await toggleLike(prompt.id, user!.id);
       setIsLiked(newLikedState);
-      setLikesCount((prev) => (newLikedState ? prev + 1 : prev - 1));
+      const nextLikes = newLikedState ? likesCount + 1 : likesCount - 1;
+      setLikesCount(nextLikes);
+      updateCaches({ is_liked: newLikedState, likes_count: nextLikes });
 
       if (onUpdate) {
         onUpdate({
@@ -85,7 +101,11 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
     try {
       const newFavoritedState = await toggleFavorite(prompt.id, user!.id);
       setIsFavorited(newFavoritedState);
-      setFavoritesCount((prev) => (newFavoritedState ? prev + 1 : prev - 1));
+      const nextFavorites = newFavoritedState ? favoritesCount + 1 : favoritesCount - 1;
+      setFavoritesCount(nextFavorites);
+      updateCaches({ is_favorited: newFavoritedState, favorites_count: nextFavorites });
+      // 收藏列表结构变化较大，直接让相关 key 重新验证
+      mutate((key) => Array.isArray(key) && key[0] === 'user-favorites');
 
       if (onUpdate) {
         onUpdate({
@@ -105,7 +125,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
 
   return (
     <>
-      <Card className="group hover:shadow-lg transition-all duration-200 border-0 shadow-sm bg-white">
+      <Card className="group hover:shadow-lg transition-all duration-200 border-0 shadow-sm bg-card">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -113,7 +133,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                 onClick={() => setIsDialogOpen(true)}
                 className="cursor-pointer"
               >
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
+                <h3 className="font-semibold text-foreground group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
                   {prompt.title}
                 </h3>
               </div>
@@ -124,7 +144,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                   style={{
                     backgroundColor: `${prompt.categorieslabel.color}15`,
                     color: prompt.categorieslabel.color,
-                    border: `1px solid ${prompt.categorieslabel.color}30`,
+                    border: `1px solid ${prompt.categorieslabel.color}`,
                   }}
                 >
                   {prompt.categorieslabel.name}
@@ -136,13 +156,13 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
 
         <CardContent className="pb-3">
           <div onClick={() => setIsDialogOpen(true)} className="cursor-pointer">
-            <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed mb-4 group-hover:text-gray-800 transition-colors">
+            <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed mb-4 group-hover:text-foreground transition-colors">
               {prompt.content}
             </p>
           </div>
 
           {/* Author Info */}
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Avatar className="h-5 w-5">
               <AvatarImage src={prompt.user_profiles?.avatar_url} />
               <AvatarFallback className="text-xs">
@@ -163,7 +183,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
         </CardContent>
 
         <CardFooter className="pt-0 flex items-center justify-between">
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
+          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
             <div className="flex items-center space-x-1">
               <Heart className="h-4 w-4" />
               <span>{likesCount}</span>
@@ -179,7 +199,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="h-8 px-2 hover:bg-gray-100"
+              className="h-8 px-2 hover:bg-accent"
             >
               <Copy className="h-4 w-4" />
             </Button>
@@ -225,29 +245,29 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
             <DialogTitle className="text-xl font-semibold">
               {prompt.title}
             </DialogTitle>
-            {prompt.categorieslabel && (
-              <Badge
-                variant="secondary"
-                className="text-xs mt-2 w-fit"
-                style={{
-                  backgroundColor: `${prompt.categorieslabel.color}15`,
-                  color: prompt.categorieslabel.color,
-                  border: `1px solid ${prompt.categorieslabel.color}30`,
-                }}
-              >
-                {prompt.categorieslabel.name}
-              </Badge>
-            )}
+              {prompt.categorieslabel && (
+                <Badge
+                  variant="secondary"
+                  className="text-xs mt-2 w-fit"
+                  style={{
+                    backgroundColor: `${prompt.categorieslabel.color}15`,
+                    color: prompt.categorieslabel.color,
+                    border: `1px solid ${prompt.categorieslabel.color}`,
+                  }}
+                >
+                  {prompt.categorieslabel.name}
+                </Badge>
+              )}
           </DialogHeader>
 
           <div className="mt-4 max-h-[60vh] overflow-y-auto">
-            <pre className="whitespace-pre-wrap text-sm text-gray-700 p-4 bg-gray-50 rounded-md">
+            <pre className="whitespace-pre-wrap text-sm text-foreground p-4 bg-card border rounded-md">
               {prompt.content}
             </pre>
           </div>
 
           <DialogFooter className="flex items-center justify-between mt-6">
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Avatar className="h-6 w-6">
                 <AvatarImage src={prompt.user_profiles?.avatar_url} />
                 <AvatarFallback className="text-xs">

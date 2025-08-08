@@ -9,7 +9,7 @@ interface AuthState {
   loading: boolean
   isAuthenticated: boolean
   initialized: boolean
-  subscription: any
+  subscription: { unsubscribe: () => void } | null
   profileLoading: boolean
   lastProfileFetchTime: number
 }

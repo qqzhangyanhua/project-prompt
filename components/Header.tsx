@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from '@/lib/auth'
 import { toast } from 'sonner'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Header() {
   const { user, profile, isAuthenticated } = useAuth()
@@ -44,7 +45,7 @@ export function Header() {
   }
 
   return (
-    <header className="border-b bg-white shadow-sm">
+    <header className="border-b bg-background shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -52,7 +53,7 @@ export function Header() {
             <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">P</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">PromptHub</span>
+            <span className="text-xl font-bold text-foreground">PromptHub</span>
           </Link>
 
           {/* Search Bar */}
@@ -71,6 +72,7 @@ export function Header() {
 
           {/* User Actions */}
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             {isAuthenticated ? (
               <>
                 <Button asChild>

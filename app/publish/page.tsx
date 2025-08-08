@@ -21,6 +21,9 @@ import { createPrompt, getCategories } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
 import type { Category } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 export default function PublishPage() {
   const router = useRouter()
@@ -29,11 +32,17 @@ export default function PublishPage() {
   const [loading, setLoading] = useState(false)
   const [newTag, setNewTag] = useState('')
 
-  const [form, setForm] = useState({
-    title: '',
-    content: '',
-    categoryId: '',
-    tags: [] as string[]
+  const publishSchema = z.object({
+    title: z.string().min(1, '标题必填').max(100, '最多100字'),
+    content: z.string().min(1, '内容必填'),
+    categoryId: z.string().uuid('请选择分类'),
+    tags: z.array(z.string().min(1)).max(5, '最多5个标签')
+  })
+  type PublishFormValues = z.infer<typeof publishSchema>
+
+  const formMethods = useForm<PublishFormValues>({
+    resolver: zodResolver(publishSchema),
+    defaultValues: { title: '', content: '', categoryId: '', tags: [] }
   })
 
   // 获取分类数据
@@ -60,53 +69,41 @@ export default function PublishPage() {
 
   const handleAddTag = () => {
     const tag = newTag.trim()
-    if (tag && !form.tags.includes(tag) && form.tags.length < 5) {
-      setForm(prev => ({
-        ...prev,
-        tags: [...prev.tags, tag]
-      }))
+    const current = formMethods.getValues('tags')
+    if (tag && !current.includes(tag) && current.length < 5) {
+      formMethods.setValue('tags', [...current, tag], { shouldValidate: true })
       setNewTag('')
     }
   }
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setForm(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }))
+    const current = formMethods.getValues('tags')
+    formMethods.setValue('tags', current.filter(t => t !== tagToRemove), { shouldValidate: true })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!form.title.trim() || !form.content.trim() || !form.categoryId) {
-      toast.error('请填写所有必填字段')
-      return
-    }
-
+  const handleSubmit = formMethods.handleSubmit(async (values) => {
     if (!user) {
       toast.error('请先登录')
       return
     }
-
     setLoading(true)
     try {
-      const prompt = await createPrompt(
-        form.title.trim(),
-        form.content.trim(),
-        form.categoryId,
-        form.tags,
+      await createPrompt(
+        values.title.trim(),
+        values.content.trim(),
+        values.categoryId,
+        values.tags,
         user.id
       )
-
       toast.success('发布成功！')
       router.push('/')
-    } catch (error: any) {
-      toast.error(error.message || '发布失败')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '发布失败'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
-  }
+  })
 
   if (authLoading) {
     return (
@@ -114,7 +111,7 @@ export default function PublishPage() {
         <div className="max-w-2xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-card rounded-lg p-6 shadow-sm">
               <div className="h-4 bg-gray-200 rounded mb-4"></div>
               <div className="h-32 bg-gray-200 rounded mb-4"></div>
               <div className="h-10 bg-gray-200 rounded"></div>
@@ -133,10 +130,10 @@ export default function PublishPage() {
     <Layout>
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             发布新提示词
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             分享你的优质提示词，帮助更多人提升AI创作效率
           </p>
         </div>
@@ -155,14 +152,15 @@ export default function PublishPage() {
                 <Input
                   id="title"
                   placeholder="为你的提示词起个吸引人的标题"
-                  value={form.title}
-                  onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+                  {...formMethods.register('title')}
                   maxLength={100}
-                  required
                 />
                 <p className="text-sm text-gray-500">
-                  {form.title.length}/100
+                  {formMethods.watch('title').length}/100
                 </p>
+                {formMethods.formState.errors.title && (
+                  <p className="text-sm text-red-600">{formMethods.formState.errors.title.message}</p>
+                )}
               </div>
 
               {/* 分类 */}
@@ -170,7 +168,8 @@ export default function PublishPage() {
                 <Label htmlFor="category">
                   分类 <span className="text-red-500">*</span>
                 </Label>
-                <Select value={form.categoryId} onValueChange={(value) => setForm(prev => ({ ...prev, categoryId: value }))}>
+                {/* 使用受控方式写入 RHF */}
+                <Select value={formMethods.watch('categoryId')} onValueChange={(value) => formMethods.setValue('categoryId', value, { shouldValidate: true })}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择分类" />
                   </SelectTrigger>
@@ -188,6 +187,9 @@ export default function PublishPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {formMethods.formState.errors.categoryId && (
+                  <p className="text-sm text-red-600">{formMethods.formState.errors.categoryId.message}</p>
+                )}
               </div>
 
               {/* 内容 */}
@@ -198,21 +200,22 @@ export default function PublishPage() {
                 <Textarea
                   id="content"
                   placeholder="输入你的提示词内容..."
-                  value={form.content}
-                  onChange={(e) => setForm(prev => ({ ...prev, content: e.target.value }))}
+                  {...formMethods.register('content')}
                   rows={8}
-                  required
                 />
                 <p className="text-sm text-gray-500">
-                  {form.content.length}
+                  {formMethods.watch('content').length}
                 </p>
+                {formMethods.formState.errors.content && (
+                  <p className="text-sm text-red-600">{formMethods.formState.errors.content.message}</p>
+                )}
               </div>
 
               {/* 标签 */}
               <div className="space-y-2">
                 <Label>标签 (最多5个)</Label>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {form.tags.map((tag) => (
+                  {formMethods.watch('tags').map((tag) => (
                     <Badge key={tag} variant="secondary" className="flex items-center space-x-1">
                       <span>{tag}</span>
                       <button
@@ -225,7 +228,7 @@ export default function PublishPage() {
                     </Badge>
                   ))}
                 </div>
-                {form.tags.length < 5 && (
+                {formMethods.watch('tags').length < 5 && (
                   <div className="flex space-x-2">
                     <Input
                       placeholder="添加标签"
@@ -252,6 +255,9 @@ export default function PublishPage() {
                 <p className="text-sm text-gray-500">
                   使用标签帮助其他用户更好地找到你的提示词
                 </p>
+                {formMethods.formState.errors.tags && (
+                  <p className="text-sm text-red-600">{formMethods.formState.errors.tags.message as string}</p>
+                )}
               </div>
 
               {/* 提交按钮 */}

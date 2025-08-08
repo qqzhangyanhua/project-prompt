@@ -6,10 +6,12 @@ import { TrendingUp, Clock } from 'lucide-react'
 import { Layout } from '@/components/Layout'
 import { PromptList } from '@/components/PromptList'
 import { CategoryFilter } from '@/components/CategoryFilter'
+import { TagFilter } from '@/components/TagFilter'
 import { Button } from '@/components/ui/button'
-import { getPrompts, getCategories } from '@/lib/prompts'
+import { getPrompts, getCategories, getTags } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
 import type { Prompt, Category } from '@/lib/supabase'
+import useSWR from 'swr'
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -21,36 +23,53 @@ export default function HomePage() {
 
   const category = searchParams.get('category')
   const searchQuery = searchParams.get('q')
+  const tagId = searchParams.get('tag')
+
+  const { data: promptsData, isLoading: promptsLoading } = useSWR(
+    ['prompts', sortBy, category, searchQuery, user?.id, tagId],
+    () => getPrompts(
+      sortBy,
+      category || undefined,
+      searchQuery || undefined,
+      user?.id || undefined,
+      tagId || undefined
+    ),
+    { revalidateOnFocus: false }
+  )
+
+  const { data: categoriesData, isLoading: categoriesLoading } = useSWR(
+    ['categories'],
+    getCategories,
+    { revalidateOnFocus: false }
+  )
+
+  const { data: tagsData } = useSWR(
+    ['tags'],
+    getTags,
+    { revalidateOnFocus: false }
+  )
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const [promptsData, categoriesData] = await Promise.all([
-          getPrompts(sortBy, category || undefined, searchQuery || undefined),
-          getCategories()
-        ])
-        setPrompts(promptsData)
-        setCategories(categoriesData)
-      } catch (error) {
-        console.error('Failed to fetch data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+    setPrompts(promptsData || [])
+  }, [promptsData])
 
-    fetchData()
-  }, [sortBy, category, searchQuery])
+  useEffect(() => {
+    setCategories(categoriesData || [])
+  }, [categoriesData])
+
+  useEffect(() => {
+    setLoading(promptsLoading || categoriesLoading)
+  }, [promptsLoading, categoriesLoading])
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             发现优质 AI 提示词
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             精选高质量提示词，让AI创作更高效
           </p>
         </div>
@@ -80,6 +99,13 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
+
+        {/* Tag Filter */}
+        {tagsData && tagsData.length > 0 && (
+          <div className="mb-6">
+            <TagFilter tags={tagsData} />
+          </div>
+        )}
 
         {/* Results Summary */}
         {searchQuery && (

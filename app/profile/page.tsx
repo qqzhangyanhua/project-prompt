@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { getUserPrompts, getUserFavorites } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
 import type { Prompt } from '@/lib/supabase'
+import useSWR from 'swr'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -29,37 +30,36 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, authLoading, router])
 
-  // 获取用户数据
+  const { data: promptsData, isLoading: promptsLoading } = useSWR(
+    user ? ['user-prompts', user.id] : null,
+    () => getUserPrompts(user!.id),
+    { revalidateOnFocus: false }
+  )
+
+  const { data: favoritesData, isLoading: favoritesLoading } = useSWR(
+    user ? ['user-favorites', user.id] : null,
+    () => getUserFavorites(user!.id),
+    { revalidateOnFocus: false }
+  )
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) return
+    setUserPrompts(promptsData || [])
+  }, [promptsData])
 
-      setLoading(true)
-      try {
-        const [promptsData, favoritesData] = await Promise.all([
-          getUserPrompts(user.id),
-          getUserFavorites(user.id)
-        ])
-        setUserPrompts(promptsData)
-        setUserFavorites(favoritesData)
-      } catch (error) {
-        console.error('Failed to fetch user data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  useEffect(() => {
+    setUserFavorites(favoritesData || [])
+  }, [favoritesData])
 
-    if (user) {
-      fetchUserData()
-    }
-  }, [user])
+  useEffect(() => {
+    setLoading(promptsLoading || favoritesLoading)
+  }, [promptsLoading, favoritesLoading])
 
   if (authLoading) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse">
-            <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
+            <div className="animate-pulse">
+              <div className="bg-card rounded-lg p-6 shadow-sm mb-6">
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
                 <div className="flex-1">
@@ -98,16 +98,16 @@ export default function ProfilePage() {
                 </Avatar>
                 
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                  <h1 className="text-2xl font-bold text-foreground mb-1">
                     {profile?.display_name || profile?.username}
                   </h1>
-                  <p className="text-gray-600 mb-3">
+                  <p className="text-muted-foreground mb-3">
                     @{profile?.username}
                   </p>
                   {profile?.bio && (
-                    <p className="text-gray-700 mb-3">{profile.bio}</p>
+                    <p className="text-foreground mb-3">{profile.bio}</p>
                   )}
-                  <div className="flex items-center space-x-1 text-sm text-gray-500">
+                  <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>
                       加入于 {new Date(profile?.created_at || '').toLocaleDateString('zh-CN')}
@@ -126,41 +126,41 @@ export default function ProfilePage() {
           <CardContent className="pt-0">
             {/* 统计信息 */}
             <div className="grid grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground mb-1">
                   {userPrompts.length}
                 </div>
-                <div className="text-sm text-gray-600 flex items-center justify-center">
+                <div className="text-sm text-muted-foreground flex items-center justify-center">
                   <FileText className="h-4 w-4 mr-1" />
                   已发布
                 </div>
               </div>
               
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground mb-1">
                   {userFavorites.length}
                 </div>
-                <div className="text-sm text-gray-600 flex items-center justify-center">
+                <div className="text-sm text-muted-foreground flex items-center justify-center">
                   <Star className="h-4 w-4 mr-1" />
                   已收藏
                 </div>
               </div>
               
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground mb-1">
                   {totalLikes}
                 </div>
-                <div className="text-sm text-gray-600 flex items-center justify-center">
+                <div className="text-sm text-muted-foreground flex items-center justify-center">
                   <Heart className="h-4 w-4 mr-1" />
                   获得点赞
                 </div>
               </div>
               
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground mb-1">
                   {totalFavorites}
                 </div>
-                <div className="text-sm text-gray-600 flex items-center justify-center">
+                <div className="text-sm text-muted-foreground flex items-center justify-center">
                   <Star className="h-4 w-4 mr-1" />
                   获得收藏
                 </div>
@@ -192,7 +192,7 @@ export default function ProfilePage() {
             {loading ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-lg p-6 shadow-sm animate-pulse">
+                  <div key={i} className="bg-card rounded-lg p-6 shadow-sm animate-pulse">
                     <div className="h-4 bg-gray-200 rounded mb-4"></div>
                     <div className="h-3 bg-gray-200 rounded mb-2"></div>
                     <div className="h-3 bg-gray-200 rounded mb-2"></div>
@@ -221,7 +221,7 @@ export default function ProfilePage() {
             {loading ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-lg p-6 shadow-sm animate-pulse">
+                  <div key={i} className="bg-card rounded-lg p-6 shadow-sm animate-pulse">
                     <div className="h-4 bg-gray-200 rounded mb-4"></div>
                     <div className="h-3 bg-gray-200 rounded mb-2"></div>
                     <div className="h-3 bg-gray-200 rounded mb-2"></div>

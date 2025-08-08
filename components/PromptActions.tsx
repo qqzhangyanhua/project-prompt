@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import type { Prompt } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useSWRConfig } from 'swr'
 
 interface PromptActionsProps {
   prompt: Prompt
@@ -15,11 +16,23 @@ interface PromptActionsProps {
 
 export function PromptActions({ prompt }: PromptActionsProps) {
   const { user, isAuthenticated } = useAuth()
+  const { mutate } = useSWRConfig()
   const [isLiked, setIsLiked] = useState(prompt.is_liked || false)
   const [isFavorited, setIsFavorited] = useState(prompt.is_favorited || false)
   const [likesCount, setLikesCount] = useState(prompt.likes_count)
   const [favoritesCount, setFavoritesCount] = useState(prompt.favorites_count)
   const [actionLoading, setActionLoading] = useState(false)
+
+  const updateCaches = (patch: Partial<Prompt>) => {
+    mutate(
+      (key) => Array.isArray(key) && (key[0] === 'prompts' || key[0] === 'user-prompts'),
+      (current: unknown) => {
+        if (!Array.isArray(current)) return current
+        return (current as Prompt[]).map((p) => (p.id === prompt.id ? { ...p, ...patch } : p))
+      },
+      { revalidate: false }
+    )
+  }
 
   const handleCopy = async () => {
     try {
@@ -40,7 +53,9 @@ export function PromptActions({ prompt }: PromptActionsProps) {
     try {
       const newLikedState = await toggleLike(prompt.id, user.id)
       setIsLiked(newLikedState)
-      setLikesCount(prev => newLikedState ? prev + 1 : prev - 1)
+      const nextLikes = newLikedState ? likesCount + 1 : likesCount - 1
+      setLikesCount(nextLikes)
+      updateCaches({ is_liked: newLikedState, likes_count: nextLikes })
       toast.success(newLikedState ? '点赞成功' : '取消点赞')
     } catch (error) {
       toast.error('操作失败')
@@ -59,7 +74,10 @@ export function PromptActions({ prompt }: PromptActionsProps) {
     try {
       const newFavoritedState = await toggleFavorite(prompt.id, user.id)
       setIsFavorited(newFavoritedState)
-      setFavoritesCount(prev => newFavoritedState ? prev + 1 : prev - 1)
+      const nextFavorites = newFavoritedState ? favoritesCount + 1 : favoritesCount - 1
+      setFavoritesCount(nextFavorites)
+      updateCaches({ is_favorited: newFavoritedState, favorites_count: nextFavorites })
+      mutate((key) => Array.isArray(key) && key[0] === 'user-favorites')
       toast.success(newFavoritedState ? '收藏成功' : '取消收藏')
     } catch (error) {
       toast.error('操作失败')

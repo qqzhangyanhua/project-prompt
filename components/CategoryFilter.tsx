@@ -50,9 +50,9 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
           onClick={() => handleCategoryClick(category.slug)}
           className="rounded-full"
           style={{
-            backgroundColor: currentCategory === category.slug ? category.color : 'transparent',
+            backgroundColor: currentCategory === category.slug ? category.color : `${category.color}15`,
             borderColor: category.color,
-            color: currentCategory === category.slug ? 'white' : category.color
+            color: currentCategory === category.slug ? '#ffffff' : category.color
           }}
         >
           {category.name}

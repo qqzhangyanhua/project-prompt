@@ -30,7 +30,7 @@ export function PromptList({ prompts: initialPrompts, loading }: PromptListProps
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-lg p-6 shadow-sm animate-pulse">
+          <div key={i} className="bg-card rounded-lg p-6 shadow-sm animate-pulse">
             <div className="h-4 bg-gray-200 rounded mb-4"></div>
             <div className="h-3 bg-gray-200 rounded mb-2"></div>
             <div className="h-3 bg-gray-200 rounded mb-2"></div>

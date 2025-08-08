@@ -1,27 +1,37 @@
 import { supabase } from './supabase'
-import type { Prompt, Category } from './supabase'
+import type { Prompt, Category, Tag } from './supabase'
 
 export async function getPrompts(
   sortBy: 'latest' | 'popular' = 'latest',
   categorySlug?: string,
   searchQuery?: string,
-  userId?: string
+  userId?: string,
+  tagId?: string
 ): Promise<Prompt[]> {
+  // 根据是否有分类筛选决定是否使用 inner join，避免无分类的提示被过滤掉
+  const baseCategorySelect = 'id, name, slug, color'
+  const selectWithLeftJoin = `*, categorieslabel (${baseCategorySelect}), user_profiles (id, username, display_name, avatar_url)`
+  const selectWithInnerJoin = `*, categorieslabel!inner (${baseCategorySelect}), user_profiles (id, username, display_name, avatar_url)`
+  const selectWithTagInner = `*, categorieslabel (${baseCategorySelect}), user_profiles (id, username, display_name, avatar_url), prompt_tags!inner(tag_id)`
+  const selectWithCategoryAndTagInner = `*, categorieslabel!inner (${baseCategorySelect}), user_profiles (id, username, display_name, avatar_url), prompt_tags!inner(tag_id)`
+
+  const selectClause: string = tagId
+    ? (categorySlug ? selectWithCategoryAndTagInner : selectWithTagInner)
+    : (categorySlug ? selectWithInnerJoin : selectWithLeftJoin)
+
   let query = supabase
     .from('prompts')
-    .select(`
-      *,
-      categorieslabel (
-        id, name, slug, color
-      ),
-      user_profiles (
-        id, username, display_name, avatar_url
-      )
-    `)
+    // 通过明确的 string 类型避免 Supabase 类型解析器在 TS 层报错
+    .select(selectClause as unknown as string)
 
   // 分类筛选
   if (categorySlug) {
     query = query.eq('categorieslabel.slug', categorySlug)
+  }
+
+  // 标签筛选
+  if (tagId) {
+    query = query.eq('prompt_tags.tag_id', tagId)
   }
 
   // 搜索筛选
@@ -42,7 +52,7 @@ export async function getPrompts(
 
   // 如果用户已登录，检查点赞和收藏状态
   if (userId && data) {
-    const promptIds = data.map(p => p.id)
+    const promptIds = (data as unknown as Prompt[]).map(p => p.id)
     
     const [likesResult, favoritesResult] = await Promise.all([
       supabase
@@ -60,14 +70,14 @@ export async function getPrompts(
     const likedPromptIds = new Set(likesResult.data?.map(l => l.prompt_id) || [])
     const favoritedPromptIds = new Set(favoritesResult.data?.map(f => f.prompt_id) || [])
 
-    return data.map(prompt => ({
+    return (data as unknown as Prompt[]).map(prompt => ({
       ...prompt,
       is_liked: likedPromptIds.has(prompt.id),
       is_favorited: favoritedPromptIds.has(prompt.id)
     }))
   }
 
-  return data || []
+  return (data as unknown as Prompt[]) || []
 }
 
 export async function getPromptById(id: string, userId?: string): Promise<Prompt | null> {
@@ -94,7 +104,7 @@ export async function getPromptById(id: string, userId?: string): Promise<Prompt
   if (!data) return null
 
   // 处理标签数据
-  const tags = data.prompt_tags?.map((pt: any) => pt.tags) || []
+  const tags = data.prompt_tags?.map((pt: { tags: Tag }) => pt.tags) || []
   
   let is_liked = false
   let is_favorited = false
@@ -302,7 +312,12 @@ export async function getUserFavorites(userId: string): Promise<Prompt[]> {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data?.map((f: any) => f.prompts as Prompt).filter(Boolean) || [])
+  type FavoriteWithPromptRow = { prompt_id: string; prompts: Prompt | null }
+  const typedRows = ((data ?? []) as unknown) as FavoriteWithPromptRow[]
+  const prompts = typedRows
+    .map((row) => row.prompts)
+    .filter((p): p is Prompt => Boolean(p))
+  return prompts
 }
 
 export async function getAllPromptIds(): Promise<string[]> {
@@ -312,4 +327,14 @@ export async function getAllPromptIds(): Promise<string[]> {
 
   if (error) throw error
   return data?.map(prompt => prompt.id) || []
+}
+
+export async function getTags(): Promise<Tag[]> {
+  const { data, error } = await supabase
+    .from('tags')
+    .select('*')
+    .order('name')
+
+  if (error) throw error
+  return data || []
 }

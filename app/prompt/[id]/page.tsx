@@ -10,6 +10,10 @@ import { Separator } from '@/components/ui/separator'
 import { getPromptById } from '@/lib/prompts'
 import { cn } from '@/lib/utils'
 import { PromptActions } from '@/components/PromptActions'
+import type { Tag as PromptTag } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Metadata } from 'next'
 
 interface PromptDetailPageProps {
   params: {
@@ -24,7 +28,14 @@ export async function generateStaticParams() {
 }
 
 export default async function PromptDetailPage({ params }: PromptDetailPageProps) {
-  const prompt = await getPromptById(params.id)
+  // 读取服务端会话，获取当前用户ID，以便个性化回显点赞/收藏状态
+  const cookieStore = cookies()
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const prompt = await getPromptById(params.id, user?.id)
   
   if (!prompt) {
     notFound()
@@ -49,7 +60,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
           <div className="lg:col-span-2 space-y-6">
             {/* 标题和基本信息 */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl font-bold text-foreground mb-4">
                 {prompt.title}
               </h1>
               
@@ -64,7 +75,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                     {prompt.categorieslabel.name}
                   </Badge>
                 )}
-                {prompt.tags?.map((tag: any) => (
+                {prompt.tags?.map((tag: PromptTag) => (
                   <Badge key={tag.id} variant="outline" className="gap-1">
                     <Tag className="h-3 w-3" />
                     {tag.name}
@@ -73,7 +84,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
               </div>
 
               {/* 作者信息 */}
-              <div className="flex items-center gap-3 text-sm text-gray-600 mb-6">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground mb-6">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={prompt.user_profiles?.avatar_url} />
@@ -100,8 +111,8 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">
+                <div className="bg-muted rounded-lg p-4">
+                  <pre className="whitespace-pre-wrap text-sm text-foreground font-mono leading-relaxed">
                     {prompt.content}
                   </pre>
                 </div>
@@ -118,15 +129,15 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">点赞数</span>
+                  <span className="text-muted-foreground">点赞数</span>
                   <span className="font-semibold">{prompt.likes_count}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">收藏数</span>
+                  <span className="text-muted-foreground">收藏数</span>
                   <span className="font-semibold">{prompt.favorites_count}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">创建时间</span>
+                  <span className="text-muted-foreground">创建时间</span>
                   <span className="text-sm">
                     {new Date(prompt.created_at).toLocaleDateString('zh-CN')}
                   </span>
@@ -152,7 +163,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                       {prompt.user_profiles?.display_name || prompt.user_profiles?.username || '匿名用户'}
                     </div>
                     {prompt.user_profiles?.username && (
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         @{prompt.user_profiles.username}
                       </div>
                     )}
@@ -165,4 +176,33 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
       </div>
     </Layout>
   )
+}
+
+export async function generateMetadata({ params }: PromptDetailPageProps): Promise<Metadata> {
+  // 仅用于 SEO，忽略个性化
+  const prompt = await getPromptById(params.id)
+  if (!prompt) {
+    return {
+      title: '提示词未找到 - PromptHub',
+      description: '该提示词不存在或已被删除'
+    }
+  }
+  const title = `${prompt.title} - PromptHub`
+  const description = prompt.content.slice(0, 120)
+  const url = `/prompt/${params.id}`
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'article'
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description
+    }
+  }
 }
