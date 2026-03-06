@@ -77,7 +77,7 @@ export default function HomePage() {
         {/* Filters */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <CategoryFilter categories={categories} />
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant={sortBy === 'latest' ? 'default' : 'outline'}
@@ -109,8 +109,8 @@ export default function HomePage() {
 
         {/* Results Summary */}
         {searchQuery && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-blue-800">
+          <div className="mb-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+            <p className="text-blue-600 dark:text-blue-400">
               搜索 &ldquo;<span className="font-semibold">{searchQuery}</span>&rdquo; 的结果
               {category && (
                 <>

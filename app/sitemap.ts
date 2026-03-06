@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { getAllPromptIds } from '@/lib/prompts'
+import { getAllPromptIdsFromDb } from '@/lib/server/prompts'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let promptRoutes: MetadataRoute.Sitemap = []
   try {
-    const ids = await getAllPromptIds()
+    const ids = await getAllPromptIdsFromDb()
     promptRoutes = ids.map((id) => ({
       url: `${siteUrl}/prompt/${id}`,
       changeFrequency: 'weekly',
@@ -32,5 +32,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticRoutes, ...promptRoutes]
 }
-
 

@@ -1,6 +1,7 @@
 const { readFileSync } = require('fs')
 const { join } = require('path')
 const { Client } = require('pg')
+require('dotenv').config({ path: join(__dirname, '..', '.env') })
 
 const migrationFiles = [
   '20250805092127_rapid_prism.sql',

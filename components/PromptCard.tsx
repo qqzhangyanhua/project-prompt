@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Heart, Star, Copy, User, X } from "lucide-react";
+import { Heart, Star, Copy, User, X, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -125,7 +125,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
 
   return (
     <>
-      <Card className="group hover:shadow-lg transition-all duration-200 border-0 shadow-sm bg-card">
+      <Card className="group relative overflow-hidden transition-all duration-500 ease-out border shadow-soft hover:shadow-soft-lg hover:-translate-y-1 bg-card dark:bg-card/90 dark:backdrop-blur-sm dark:border-white/5">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -133,7 +133,7 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                 onClick={() => setIsDialogOpen(true)}
                 className="cursor-pointer"
               >
-                <h3 className="font-semibold text-foreground group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
                   {prompt.title}
                 </h3>
               </div>
@@ -156,10 +156,12 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
 
         <CardContent className="pb-3">
           <div onClick={() => setIsDialogOpen(true)} className="cursor-pointer">
-            <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed mb-4 group-hover:text-foreground transition-colors">
+            <p className="text-muted-foreground/90 text-sm line-clamp-3 leading-relaxed mb-5 group-hover:text-foreground/90 transition-colors">
               {prompt.content}
             </p>
           </div>
+
+          <div className="h-px w-full bg-border/50 mb-4" />
 
           {/* Author Info */}
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -212,11 +214,15 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                   onClick={handleLike}
                   disabled={loading}
                   className={cn(
-                    "h-8 px-2 hover:bg-red-50 hover:text-red-600",
-                    isLiked && "text-red-600 bg-red-50"
+                    "h-8 px-2 hover:bg-primary/10 hover:text-primary transition-colors",
+                    isLiked && "text-primary bg-primary/10 font-medium"
                   )}
                 >
-                  <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
+                  )}
                 </Button>
 
                 <Button
@@ -225,13 +231,15 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                   onClick={handleFavorite}
                   disabled={loading}
                   className={cn(
-                    "h-8 px-2 hover:bg-yellow-50 hover:text-yellow-600",
-                    isFavorited && "text-yellow-600 bg-yellow-50"
+                    "h-8 px-2 hover:bg-amber-500/10 hover:text-amber-500 transition-colors",
+                    isFavorited && "text-amber-500 bg-amber-500/10 font-medium"
                   )}
                 >
-                  <Star
-                    className={cn("h-4 w-4", isFavorited && "fill-current")}
-                  />
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Star className={cn("h-4 w-4", isFavorited && "fill-current")} />
+                  )}
                 </Button>
               </>
             )}
@@ -245,19 +253,19 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
             <DialogTitle className="text-xl font-semibold">
               {prompt.title}
             </DialogTitle>
-              {prompt.categorieslabel && (
-                <Badge
-                  variant="secondary"
-                  className="text-xs mt-2 w-fit"
-                  style={{
-                    backgroundColor: `${prompt.categorieslabel.color}15`,
-                    color: prompt.categorieslabel.color,
-                    border: `1px solid ${prompt.categorieslabel.color}`,
-                  }}
-                >
-                  {prompt.categorieslabel.name}
-                </Badge>
-              )}
+            {prompt.categorieslabel && (
+              <Badge
+                variant="secondary"
+                className="text-xs mt-2 w-fit"
+                style={{
+                  backgroundColor: `${prompt.categorieslabel.color}15`,
+                  color: prompt.categorieslabel.color,
+                  border: `1px solid ${prompt.categorieslabel.color}`,
+                }}
+              >
+                {prompt.categorieslabel.name}
+              </Badge>
+            )}
           </DialogHeader>
 
           <div className="mt-4 max-h-[60vh] overflow-y-auto">
@@ -302,13 +310,15 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                     onClick={handleLike}
                     disabled={loading}
                     className={cn(
-                      "flex items-center space-x-1",
-                      isLiked && "text-red-600 border-red-200 bg-red-50"
+                      "flex items-center space-x-1 transition-colors",
+                      isLiked && "text-primary border-primary/20 bg-primary/10 font-medium"
                     )}
                   >
-                    <Heart
-                      className={cn("h-4 w-4 mr-1", isLiked && "fill-current")}
-                    />
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Heart className={cn("h-4 w-4 mr-1", isLiked && "fill-current")} />
+                    )}
                     <span>{isLiked ? "已点赞" : "点赞"}</span>
                   </Button>
 
@@ -317,17 +327,15 @@ export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
                     onClick={handleFavorite}
                     disabled={loading}
                     className={cn(
-                      "flex items-center space-x-1",
-                      isFavorited &&
-                        "text-yellow-600 border-yellow-200 bg-yellow-50"
+                      "flex items-center space-x-1 transition-colors",
+                      isFavorited && "text-amber-500 border-amber-500/20 bg-amber-500/10 font-medium"
                     )}
                   >
-                    <Star
-                      className={cn(
-                        "h-4 w-4 mr-1",
-                        isFavorited && "fill-current"
-                      )}
-                    />
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Star className={cn("h-4 w-4 mr-1", isFavorited && "fill-current")} />
+                    )}
                     <span>{isFavorited ? "已收藏" : "收藏"}</span>
                   </Button>
                 </>

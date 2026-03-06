@@ -110,11 +110,11 @@ export default function PublishPage() {
       <Layout>
         <div className="max-w-2xl mx-auto">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="bg-card rounded-lg p-6 shadow-sm">
-              <div className="h-4 bg-gray-200 rounded mb-4"></div>
-              <div className="h-32 bg-gray-200 rounded mb-4"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-muted rounded mb-4"></div>
+            <div className="bg-card border rounded-lg p-6 shadow-sm">
+              <div className="h-4 bg-muted rounded mb-4"></div>
+              <div className="h-32 bg-muted rounded mb-4"></div>
+              <div className="h-10 bg-muted rounded"></div>
             </div>
           </div>
         </div>
@@ -155,11 +155,11 @@ export default function PublishPage() {
                   {...formMethods.register('title')}
                   maxLength={100}
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {formMethods.watch('title').length}/100
                 </p>
                 {formMethods.formState.errors.title && (
-                  <p className="text-sm text-red-600">{formMethods.formState.errors.title.message}</p>
+                  <p className="text-sm text-destructive">{formMethods.formState.errors.title.message}</p>
                 )}
               </div>
 
@@ -188,7 +188,7 @@ export default function PublishPage() {
                   </SelectContent>
                 </Select>
                 {formMethods.formState.errors.categoryId && (
-                  <p className="text-sm text-red-600">{formMethods.formState.errors.categoryId.message}</p>
+                  <p className="text-sm text-destructive">{formMethods.formState.errors.categoryId.message}</p>
                 )}
               </div>
 
@@ -203,11 +203,11 @@ export default function PublishPage() {
                   {...formMethods.register('content')}
                   rows={8}
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {formMethods.watch('content').length}
                 </p>
                 {formMethods.formState.errors.content && (
-                  <p className="text-sm text-red-600">{formMethods.formState.errors.content.message}</p>
+                  <p className="text-sm text-destructive">{formMethods.formState.errors.content.message}</p>
                 )}
               </div>
 
@@ -221,7 +221,7 @@ export default function PublishPage() {
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="ml-1 hover:text-red-600"
+                        className="ml-1 hover:text-destructive"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -252,11 +252,11 @@ export default function PublishPage() {
                     </Button>
                   </div>
                 )}
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   使用标签帮助其他用户更好地找到你的提示词
                 </p>
                 {formMethods.formState.errors.tags && (
-                  <p className="text-sm text-red-600">{formMethods.formState.errors.tags.message as string}</p>
+                  <p className="text-sm text-destructive">{formMethods.formState.errors.tags.message as string}</p>
                 )}
               </div>
 

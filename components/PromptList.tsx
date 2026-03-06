@@ -30,11 +30,11 @@ export function PromptList({ prompts: initialPrompts, loading }: PromptListProps
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg p-6 shadow-sm animate-pulse">
-            <div className="h-4 bg-gray-200 rounded mb-4"></div>
-            <div className="h-3 bg-gray-200 rounded mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+          <div key={i} className="bg-card rounded-lg p-6 shadow-sm animate-pulse border">
+            <div className="h-4 bg-muted rounded mb-4"></div>
+            <div className="h-3 bg-muted rounded mb-2"></div>
+            <div className="h-3 bg-muted rounded mb-2"></div>
+            <div className="h-3 bg-muted rounded w-3/4"></div>
           </div>
         ))}
       </div>
@@ -44,8 +44,8 @@ export function PromptList({ prompts: initialPrompts, loading }: PromptListProps
   if (prompts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 text-lg mb-4">暂无提示词</p>
-        <p className="text-gray-400">试试调整筛选条件或搜索关键词</p>
+        <p className="text-muted-foreground text-lg mb-4">暂无提示词</p>
+        <p className="text-muted-foreground/80">试试调整筛选条件或搜索关键词</p>
       </div>
     )
   }

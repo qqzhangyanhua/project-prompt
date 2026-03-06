@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { getPromptById } from '@/lib/prompts'
+import { getPromptByIdFromDb } from '@/lib/server/prompts'
 import { PromptActions } from '@/components/PromptActions'
 import type { Tag as PromptTag } from '@/lib/type'
 import { getSessionIdentity } from '@/lib/server/session'
@@ -28,7 +28,7 @@ export async function generateStaticParams() {
 export default async function PromptDetailPage({ params }: PromptDetailPageProps) {
   const { user } = await getSessionIdentity()
 
-  const prompt = await getPromptById(params.id, user?.id)
+  const prompt = await getPromptByIdFromDb(params.id, user?.id)
   
   if (!prompt) {
     notFound()
@@ -173,7 +173,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
 
 export async function generateMetadata({ params }: PromptDetailPageProps): Promise<Metadata> {
   // 仅用于 SEO，忽略个性化
-  const prompt = await getPromptById(params.id)
+  const prompt = await getPromptByIdFromDb(params.id)
   if (!prompt) {
     return {
       title: '提示词未找到 - PromptHub',

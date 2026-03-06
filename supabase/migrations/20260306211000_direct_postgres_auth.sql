@@ -1,8 +1,6 @@
 -- Direct PostgreSQL auth/session support
 -- Keep existing business tables, remove dependency on Supabase auth.users.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 ALTER TABLE user_profiles
   DROP CONSTRAINT IF EXISTS user_profiles_id_fkey;
 

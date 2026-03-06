@@ -1,6 +1,7 @@
 const { readFileSync } = require('fs')
 const { join } = require('path')
 const { Client } = require('pg')
+require('dotenv').config({ path: join(__dirname, '..', '.env') })
 
 const seedFile = '20260306224000_seed_minimal_data.sql'
 

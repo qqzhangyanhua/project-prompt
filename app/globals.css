@@ -18,58 +18,89 @@
 
 @layer base {
   :root {
-    /* 浅色主题 */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ✨ 亮色主题 - 悬浮与科技感 */
+    /* 背景：极浅的冷蓝灰色，取代纯白以拉开与白卡的层级 */
+    --background: 220 33% 98%;
+    /* 文本：稍微偏灰的黑，取代极致纯黑以保护视力 */
+    --foreground: 224 71% 10%;
+    /* 卡片：纯白，悬浮在背景之上 */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 71% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 224 71% 10%;
+
+    /* 品牌主色：电光紫 / 靛蓝 (呼应 Logo) */
+    --primary: 250 84% 54%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* 次要：极浅的紫灰色 */
+    --secondary: 240 10% 96%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    /* 弱化：用于边框和次级文本 */
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 250 84% 96%;
+    --accent-foreground: 250 84% 54%;
+    
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* 极淡的边框线 */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 250 84% 54%;
+
+    --radius: 0.75rem;
+
+    /* 数据图表配色优化 */
+    --chart-1: 250 84% 54%;
+    --chart-2: 220 70% 50%;
+    --chart-3: 173 58% 39%;
     --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --chart-5: 12 76% 61%;
   }
+
   .dark {
-    /* 暗色主题 */
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 215 27.9% 16.9%;
+    /* 🌌 暗黑主题 - 深空玻璃质感 */
+    /* 背景：极致深邃的紫夜蓝，非绝黑，营造宇宙深空感 */
+    --background: 230 25% 6%;
+    /* 文本：略微柔和的高纯度白色 */
+    --foreground: 210 40% 98%;
+    
+    /* 卡片：比底色稍微浅一点点的深色，配合发丝级边框 */
+    --card: 230 25% 9%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 230 25% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    /* 品牌主色：在暗色模式下提高明度，发光紫 */
+    --primary: 250 84% 65%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 230 15% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    
+    --muted: 230 15% 15%;
+    --muted-foreground: 220 20% 65%;
+    
+    --accent: 250 84% 15%;
+    --accent-foreground: 250 84% 75%;
+    
+    --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
+    
+    /* 极细微、几近透明的光泽边框 */
+    --border: 230 15% 18%;
+    --input: 230 15% 18%;
+    --ring: 250 84% 65%;
+
+    --chart-1: 250 84% 65%;
+    --chart-2: 220 70% 60%;
+    --chart-3: 160 60% 45%;
+    --chart-4: 30 80% 55%;
     --chart-5: 340 75% 55%;
   }
 }
@@ -80,5 +111,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+      'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif;
   }
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Heart, Star, FileText, Edit3 } from 'lucide-react'
+import { Calendar, Heart, Star, FileText, Edit3, Trash2, Pencil } from 'lucide-react'
 import { Layout } from '@/components/Layout'
 import { PromptCard } from '@/components/PromptCard'
 import { Button } from '@/components/ui/button'
@@ -10,10 +10,21 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { getUserPrompts, getUserFavorites } from '@/lib/prompts'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { getUserPrompts, getUserFavorites, deletePrompt } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
 import type { Prompt } from '@/lib/type'
 import useSWR from 'swr'
+import { toast } from 'sonner'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -22,6 +33,8 @@ export default function ProfilePage() {
   const [userFavorites, setUserFavorites] = useState<Prompt[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('published')
+  const [promptToDelete, setPromptToDelete] = useState<Prompt | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // 检查用户登录状态
   useEffect(() => {
@@ -30,7 +43,7 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, authLoading, router])
 
-  const { data: promptsData, isLoading: promptsLoading } = useSWR(
+  const { data: promptsData, isLoading: promptsLoading, mutate: mutatePrompts } = useSWR(
     user ? ['user-prompts', user.id] : null,
     () => getUserPrompts(user!.id),
     { revalidateOnFocus: false }
@@ -54,12 +67,28 @@ export default function ProfilePage() {
     setLoading(promptsLoading || favoritesLoading)
   }, [promptsLoading, favoritesLoading])
 
+  const handleDelete = async () => {
+    if (!promptToDelete) return
+    setDeleting(true)
+    try {
+      await deletePrompt(promptToDelete.id)
+      toast.success('已删除提示词')
+      mutatePrompts()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '删除失败'
+      toast.error(message)
+    } finally {
+      setDeleting(false)
+      setPromptToDelete(null)
+    }
+  }
+
   if (authLoading) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse">
-              <div className="bg-card rounded-lg p-6 shadow-sm mb-6">
+          <div className="animate-pulse">
+            <div className="bg-card rounded-lg p-6 shadow-sm mb-6">
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
                 <div className="flex-1">
@@ -92,11 +121,11 @@ export default function ProfilePage() {
                 <Avatar className="w-20 h-20">
                   <AvatarImage src={profile?.avatar_url} />
                   <AvatarFallback className="text-2xl">
-                    {profile?.display_name?.[0]?.toUpperCase() || 
-                     profile?.username?.[0]?.toUpperCase() || 'U'}
+                    {profile?.display_name?.[0]?.toUpperCase() ||
+                      profile?.username?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-foreground mb-1">
                     {profile?.display_name || profile?.username}
@@ -135,7 +164,7 @@ export default function ProfilePage() {
                   已发布
                 </div>
               </div>
-              
+
               <div className="text-center p-4 bg-muted rounded-lg">
                 <div className="text-2xl font-bold text-foreground mb-1">
                   {userFavorites.length}
@@ -145,7 +174,7 @@ export default function ProfilePage() {
                   已收藏
                 </div>
               </div>
-              
+
               <div className="text-center p-4 bg-muted rounded-lg">
                 <div className="text-2xl font-bold text-foreground mb-1">
                   {totalLikes}
@@ -155,7 +184,7 @@ export default function ProfilePage() {
                   获得点赞
                 </div>
               </div>
-              
+
               <div className="text-center p-4 bg-muted rounded-lg">
                 <div className="text-2xl font-bold text-foreground mb-1">
                   {totalFavorites}
@@ -203,7 +232,30 @@ export default function ProfilePage() {
             ) : userPrompts.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {userPrompts.map((prompt) => (
-                  <PromptCard key={prompt.id} prompt={prompt} />
+                  <div key={prompt.id} className="relative group/card">
+                    <PromptCard prompt={prompt} />
+                    {/* 编辑/删除按钮浮层 */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 z-10">
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 bg-background/90 backdrop-blur-sm shadow-sm hover:bg-primary hover:text-primary-foreground transition-colors"
+                        onClick={() => router.push(`/edit/${prompt.id}`)}
+                        title="编辑"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 bg-background/90 backdrop-blur-sm shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        onClick={() => setPromptToDelete(prompt)}
+                        title="删除"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -247,6 +299,28 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={!!promptToDelete} onOpenChange={(open) => !open && setPromptToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除「{promptToDelete?.title}」吗？此操作不可撤销，该提示词的点赞和收藏数据也将一并删除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? '删除中...' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   )
 }

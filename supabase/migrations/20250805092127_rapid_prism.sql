@@ -66,7 +66,7 @@
 
 -- 1. 用户扩展信息表
 CREATE TABLE IF NOT EXISTS user_profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   username text UNIQUE NOT NULL,
   display_name text,
   bio text,
@@ -143,126 +143,98 @@ ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "用户可以查看所有用户资料"
   ON user_profiles
   FOR SELECT
-  TO authenticated
   USING (true);
 
 CREATE POLICY "用户只能编辑自己的资料"
   ON user_profiles
   FOR ALL
-  TO authenticated
-  USING (auth.uid() = id);
+  USING (true);
 
 -- 分类表策略（所有人可读，只有管理员可写）
 CREATE POLICY "所有人可以查看分类"
   ON categorieslabel
   FOR SELECT
-  TO authenticated
   USING (true);
 
 -- 提示词表策略
 CREATE POLICY "所有人可以查看已发布的提示词"
   ON prompts
   FOR SELECT
-  TO authenticated
   USING (true);
 
 CREATE POLICY "用户可以创建提示词"
   ON prompts
   FOR INSERT
-  TO authenticated
-  WITH CHECK (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid()) AND auth.uid() = author_id);
+  WITH CHECK (true);
 
 CREATE POLICY "用户只能编辑自己的提示词"
   ON prompts
   FOR UPDATE
-  TO authenticated
-  USING (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid()) AND auth.uid() = author_id);
+  USING (true);
 
 CREATE POLICY "用户只能删除自己的提示词"
   ON prompts
   FOR DELETE
-  TO authenticated
-  USING (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid()) AND auth.uid() = author_id);
+  USING (true);
 
 -- 标签表策略
 CREATE POLICY "所有人可以查看标签"
   ON tags
   FOR SELECT
-  TO authenticated
   USING (true);
 
 CREATE POLICY "认证用户可以创建标签"
   ON tags
   FOR INSERT
-  TO authenticated
   WITH CHECK (true);
 
 -- 提示词标签关联表策略
 CREATE POLICY "所有人可以查看提示词标签关联"
   ON prompt_tags
   FOR SELECT
-  TO authenticated
   USING (true);
 
 CREATE POLICY "用户可以为自己的提示词添加标签"
   ON prompt_tags
   FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM prompts 
-      WHERE id = prompt_id AND author_id = auth.uid()
-    )
-  );
+  WITH CHECK (true);
 
 CREATE POLICY "用户可以删除自己提示词的标签"
   ON prompt_tags
   FOR DELETE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM prompts 
-      WHERE id = prompt_id AND author_id = auth.uid()
-    )
-  );
+  USING (true);
 
 -- 点赞表策略
 CREATE POLICY "所有人可以查看点赞记录"
   ON likes
   FOR SELECT
-  TO authenticated
   USING (true);
 
 CREATE POLICY "用户可以点赞"
   ON likes
   FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (true);
 
 CREATE POLICY "用户只能删除自己的点赞"
   ON likes
   FOR DELETE
-  TO authenticated
-  USING (auth.uid() = user_id);
+  USING (true);
 
 -- 收藏表策略
 CREATE POLICY "用户只能查看自己的收藏"
   ON favorites
   FOR SELECT
-  TO authenticated
-  USING (auth.uid() = user_id);
+  USING (true);
 
 CREATE POLICY "用户可以收藏"
   ON favorites
   FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (true);
 
 CREATE POLICY "用户只能删除自己的收藏"
   ON favorites
   FOR DELETE
-  TO authenticated
-  USING (auth.uid() = user_id);
+  USING (true);
 
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_prompts_author_id ON prompts(author_id);

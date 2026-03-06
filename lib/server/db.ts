@@ -1,3 +1,4 @@
+import 'server-only'
 import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 
 const globalForDb = globalThis as typeof globalThis & {

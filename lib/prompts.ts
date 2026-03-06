@@ -34,11 +34,6 @@ export async function getPrompts(
   userId?: string,
   tagId?: string
 ): Promise<Prompt[]> {
-  if (typeof window === 'undefined') {
-    const { getPromptsFromDb } = await import('./server/prompts')
-    return getPromptsFromDb(sortBy, categorySlug, searchQuery, userId, tagId)
-  }
-
   const query = buildQuery({
     sortBy,
     categorySlug,
@@ -56,11 +51,6 @@ export async function getPrompts(
 }
 
 export async function getPromptById(id: string, userId?: string): Promise<Prompt | null> {
-  if (typeof window === 'undefined') {
-    const { getPromptByIdFromDb } = await import('./server/prompts')
-    return getPromptByIdFromDb(id, userId)
-  }
-
   const query = buildQuery({ userId })
   const response = await fetch(`/api/prompts/${id}${query}`, {
     credentials: 'include',
@@ -118,11 +108,6 @@ export async function toggleFavorite(promptId: string, _userId: string): Promise
 }
 
 export async function getCategories(): Promise<Category[]> {
-  if (typeof window === 'undefined') {
-    const { getCategoriesFromDb } = await import('./server/prompts')
-    return getCategoriesFromDb()
-  }
-
   const response = await fetch('/api/categories', {
     credentials: 'include',
     cache: 'no-store',
@@ -131,11 +116,6 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getUserPrompts(userId: string): Promise<Prompt[]> {
-  if (typeof window === 'undefined') {
-    const { getUserPromptsFromDb } = await import('./server/prompts')
-    return getUserPromptsFromDb(userId)
-  }
-
   const response = await fetch(`/api/users/${userId}/prompts`, {
     credentials: 'include',
     cache: 'no-store',
@@ -145,11 +125,6 @@ export async function getUserPrompts(userId: string): Promise<Prompt[]> {
 }
 
 export async function getUserFavorites(userId: string): Promise<Prompt[]> {
-  if (typeof window === 'undefined') {
-    const { getUserFavoritesFromDb } = await import('./server/prompts')
-    return getUserFavoritesFromDb(userId)
-  }
-
   const response = await fetch(`/api/users/${userId}/favorites`, {
     credentials: 'include',
     cache: 'no-store',
@@ -159,24 +134,36 @@ export async function getUserFavorites(userId: string): Promise<Prompt[]> {
 }
 
 export async function getAllPromptIds(): Promise<string[]> {
-  if (typeof window === 'undefined') {
-    const { getAllPromptIdsFromDb } = await import('./server/prompts')
-    return getAllPromptIdsFromDb()
-  }
-
   const prompts = await getPrompts('latest')
   return prompts.map((prompt) => prompt.id)
 }
 
 export async function getTags(): Promise<Tag[]> {
-  if (typeof window === 'undefined') {
-    const { getTagsFromDb } = await import('./server/prompts')
-    return getTagsFromDb()
-  }
-
   const response = await fetch('/api/tags', {
     credentials: 'include',
     cache: 'no-store',
   })
   return parseJson<Tag[]>(response)
 }
+
+export async function updatePrompt(
+  id: string,
+  data: { title: string; content: string; categoryId: string; tags: string[] }
+): Promise<Prompt> {
+  const response = await fetch(`/api/prompts/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+  return parseJson<Prompt>(response)
+}
+
+export async function deletePrompt(id: string): Promise<void> {
+  const response = await fetch(`/api/prompts/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  await parseJson<{ success: boolean }>(response)
+}
+

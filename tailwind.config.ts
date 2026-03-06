@@ -19,6 +19,10 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      boxShadow: {
+        'soft': '0 4px 40px -2px rgba(0, 0, 0, 0.04)',
+        'soft-lg': '0 10px 50px -2px rgba(0, 0, 0, 0.06)',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

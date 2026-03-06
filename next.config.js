@@ -24,6 +24,7 @@ const nextConfig = {
         assert: false,
         os: false,
         path: false,
+        'pg-native': false,
         'utf-8-validate': false,
         bufferutil: false,
       };

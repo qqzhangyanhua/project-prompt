@@ -1,5 +1,7 @@
+import 'server-only'
 import { query } from './db'
 import type { Category, Prompt, Tag } from '@/lib/type'
+import type { PgErrorLike } from './type'
 
 interface PromptRow {
   id: string
@@ -32,24 +34,29 @@ function mapPromptRow(row: PromptRow): Prompt {
     updated_at: row.updated_at,
     categorieslabel: row.category_name
       ? {
-          id: row.category_id ?? '',
-          name: row.category_name,
-          slug: row.category_slug ?? '',
-          color: row.category_color ?? '#3B82F6',
-          created_at: '',
-        }
+        id: row.category_id ?? '',
+        name: row.category_name,
+        slug: row.category_slug ?? '',
+        color: row.category_color ?? '#3B82F6',
+        created_at: '',
+      }
       : undefined,
     user_profiles: row.user_username
       ? {
-          id: row.author_id,
-          username: row.user_username,
-          display_name: row.user_display_name ?? undefined,
-          avatar_url: row.user_avatar_url ?? undefined,
-          created_at: '',
-          updated_at: '',
-        }
+        id: row.author_id,
+        username: row.user_username,
+        display_name: row.user_display_name ?? undefined,
+        avatar_url: row.user_avatar_url ?? undefined,
+        created_at: '',
+        updated_at: '',
+      }
       : undefined,
   }
+}
+
+function isMissingRelationError(error: unknown): boolean {
+  const candidate = error as PgErrorLike
+  return candidate.code === '42P01'
 }
 
 export async function getPromptsFromDb(
@@ -59,32 +66,33 @@ export async function getPromptsFromDb(
   userId?: string,
   tagId?: string
 ): Promise<Prompt[]> {
-  const conditions: string[] = []
-  const values: Array<string> = []
+  try {
+    const conditions: string[] = []
+    const values: Array<string> = []
 
-  if (categorySlug) {
-    values.push(categorySlug)
-    conditions.push(`c.slug = $${values.length}`)
-  }
+    if (categorySlug) {
+      values.push(categorySlug)
+      conditions.push(`c.slug = $${values.length}`)
+    }
 
-  if (searchQuery) {
-    values.push(`%${searchQuery}%`)
-    values.push(`%${searchQuery}%`)
-    conditions.push(`(p.title ILIKE $${values.length - 1} OR p.content ILIKE $${values.length})`)
-  }
+    if (searchQuery) {
+      values.push(`%${searchQuery}%`)
+      values.push(`%${searchQuery}%`)
+      conditions.push(`(p.title ILIKE $${values.length - 1} OR p.content ILIKE $${values.length})`)
+    }
 
-  if (tagId) {
-    values.push(tagId)
-    conditions.push(
-      `EXISTS (SELECT 1 FROM prompt_tags pt WHERE pt.prompt_id = p.id AND pt.tag_id = $${values.length})`
-    )
-  }
+    if (tagId) {
+      values.push(tagId)
+      conditions.push(
+        `EXISTS (SELECT 1 FROM prompt_tags pt WHERE pt.prompt_id = p.id AND pt.tag_id = $${values.length})`
+      )
+    }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-  const orderBy = sortBy === 'popular' ? 'p.likes_count DESC' : 'p.created_at DESC'
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+    const orderBy = sortBy === 'popular' ? 'p.likes_count DESC' : 'p.created_at DESC'
 
-  const result = await query<PromptRow>(
-    `SELECT
+    const result = await query<PromptRow>(
+      `SELECT
        p.id,
        p.title,
        p.content,
@@ -106,40 +114,47 @@ export async function getPromptsFromDb(
      ${whereClause}
      ORDER BY ${orderBy}
      LIMIT 50`,
-    values
-  )
+      values
+    )
 
-  const prompts = result.rows.map((row: PromptRow) => mapPromptRow(row))
+    const prompts = result.rows.map((row: PromptRow) => mapPromptRow(row))
 
-  if (!userId || prompts.length === 0) {
-    return prompts
+    if (!userId || prompts.length === 0) {
+      return prompts
+    }
+
+    const ids = prompts.map((p: Prompt) => p.id)
+    const likes = await query<{ prompt_id: string }>(
+      `SELECT prompt_id FROM likes WHERE user_id = $1 AND prompt_id = ANY($2::uuid[])`,
+      [userId, ids]
+    )
+    const favorites = await query<{ prompt_id: string }>(
+      `SELECT prompt_id FROM favorites WHERE user_id = $1 AND prompt_id = ANY($2::uuid[])`,
+      [userId, ids]
+    )
+
+    const likedIds = new Set(likes.rows.map((row: { prompt_id: string }) => row.prompt_id))
+    const favoritedIds = new Set(
+      favorites.rows.map((row: { prompt_id: string }) => row.prompt_id)
+    )
+
+    return prompts.map((prompt: Prompt) => ({
+      ...prompt,
+      is_liked: likedIds.has(prompt.id),
+      is_favorited: favoritedIds.has(prompt.id),
+    }))
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return []
+    }
+    throw error
   }
-
-  const ids = prompts.map((p: Prompt) => p.id)
-  const likes = await query<{ prompt_id: string }>(
-    `SELECT prompt_id FROM likes WHERE user_id = $1 AND prompt_id = ANY($2::uuid[])`,
-    [userId, ids]
-  )
-  const favorites = await query<{ prompt_id: string }>(
-    `SELECT prompt_id FROM favorites WHERE user_id = $1 AND prompt_id = ANY($2::uuid[])`,
-    [userId, ids]
-  )
-
-  const likedIds = new Set(likes.rows.map((row: { prompt_id: string }) => row.prompt_id))
-  const favoritedIds = new Set(
-    favorites.rows.map((row: { prompt_id: string }) => row.prompt_id)
-  )
-
-  return prompts.map((prompt: Prompt) => ({
-    ...prompt,
-    is_liked: likedIds.has(prompt.id),
-    is_favorited: favoritedIds.has(prompt.id),
-  }))
 }
 
 export async function getPromptByIdFromDb(id: string, userId?: string): Promise<Prompt | null> {
-  const promptResult = await query<PromptRow>(
-    `SELECT
+  try {
+    const promptResult = await query<PromptRow>(
+      `SELECT
        p.id,
        p.title,
        p.content,
@@ -160,47 +175,53 @@ export async function getPromptByIdFromDb(id: string, userId?: string): Promise<
      LEFT JOIN user_profiles up ON up.id = p.author_id
      WHERE p.id = $1
      LIMIT 1`,
-    [id]
-  )
+      [id]
+    )
 
-  const row = promptResult.rows[0]
-  if (!row) {
-    return null
-  }
+    const row = promptResult.rows[0]
+    if (!row) {
+      return null
+    }
 
-  const tagsResult = await query<Tag>(
-    `SELECT t.id, t.name, t.created_at
+    const tagsResult = await query<Tag>(
+      `SELECT t.id, t.name, t.created_at
      FROM prompt_tags pt
      JOIN tags t ON t.id = pt.tag_id
      WHERE pt.prompt_id = $1
      ORDER BY t.name`,
-    [id]
-  )
+      [id]
+    )
 
-  let isLiked = false
-  let isFavorited = false
+    let isLiked = false
+    let isFavorited = false
 
-  if (userId) {
-    const [likeResult, favoriteResult] = await Promise.all([
-      query<{ exists: boolean }>(
-        'SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND prompt_id = $2) AS exists',
-        [userId, id]
-      ),
-      query<{ exists: boolean }>(
-        'SELECT EXISTS(SELECT 1 FROM favorites WHERE user_id = $1 AND prompt_id = $2) AS exists',
-        [userId, id]
-      ),
-    ])
+    if (userId) {
+      const [likeResult, favoriteResult] = await Promise.all([
+        query<{ exists: boolean }>(
+          'SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND prompt_id = $2) AS exists',
+          [userId, id]
+        ),
+        query<{ exists: boolean }>(
+          'SELECT EXISTS(SELECT 1 FROM favorites WHERE user_id = $1 AND prompt_id = $2) AS exists',
+          [userId, id]
+        ),
+      ])
 
-    isLiked = Boolean(likeResult.rows[0]?.exists)
-    isFavorited = Boolean(favoriteResult.rows[0]?.exists)
-  }
+      isLiked = Boolean(likeResult.rows[0]?.exists)
+      isFavorited = Boolean(favoriteResult.rows[0]?.exists)
+    }
 
-  return {
-    ...mapPromptRow(row),
-    tags: tagsResult.rows,
-    is_liked: isLiked,
-    is_favorited: isFavorited,
+    return {
+      ...mapPromptRow(row),
+      tags: tagsResult.rows,
+      is_liked: isLiked,
+      is_favorited: isFavorited,
+    }
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return null
+    }
+    throw error
   }
 }
 
@@ -286,20 +307,35 @@ export async function toggleFavoriteInDb(promptId: string, userId: string): Prom
 }
 
 export async function getCategoriesFromDb(): Promise<Category[]> {
-  const result = await query<Category>(
-    'SELECT id, name, slug, description, color, created_at FROM categorieslabel ORDER BY name'
-  )
-  return result.rows
+  try {
+    const result = await query<Category>(
+      'SELECT id, name, slug, description, color, created_at FROM categorieslabel ORDER BY name'
+    )
+    return result.rows
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return []
+    }
+    throw error
+  }
 }
 
 export async function getTagsFromDb(): Promise<Tag[]> {
-  const result = await query<Tag>('SELECT id, name, created_at FROM tags ORDER BY name')
-  return result.rows
+  try {
+    const result = await query<Tag>('SELECT id, name, created_at FROM tags ORDER BY name')
+    return result.rows
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return []
+    }
+    throw error
+  }
 }
 
 export async function getUserPromptsFromDb(userId: string): Promise<Prompt[]> {
-  const result = await query<PromptRow>(
-    `SELECT
+  try {
+    const result = await query<PromptRow>(
+      `SELECT
        p.id,
        p.title,
        p.content,
@@ -320,15 +356,22 @@ export async function getUserPromptsFromDb(userId: string): Promise<Prompt[]> {
      LEFT JOIN user_profiles up ON up.id = p.author_id
      WHERE p.author_id = $1
      ORDER BY p.created_at DESC`,
-    [userId]
-  )
+      [userId]
+    )
 
-  return result.rows.map((row: PromptRow) => mapPromptRow(row))
+    return result.rows.map((row: PromptRow) => mapPromptRow(row))
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return []
+    }
+    throw error
+  }
 }
 
 export async function getUserFavoritesFromDb(userId: string): Promise<Prompt[]> {
-  const result = await query<PromptRow>(
-    `SELECT
+  try {
+    const result = await query<PromptRow>(
+      `SELECT
        p.id,
        p.title,
        p.content,
@@ -350,13 +393,96 @@ export async function getUserFavoritesFromDb(userId: string): Promise<Prompt[]> 
      LEFT JOIN user_profiles up ON up.id = p.author_id
      WHERE f.user_id = $1
      ORDER BY f.created_at DESC`,
-    [userId]
-  )
+      [userId]
+    )
 
-  return result.rows.map((row: PromptRow) => mapPromptRow(row))
+    return result.rows.map((row: PromptRow) => mapPromptRow(row))
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return []
+    }
+    throw error
+  }
 }
 
 export async function getAllPromptIdsFromDb(): Promise<string[]> {
-  const result = await query<{ id: string }>('SELECT id FROM prompts')
-  return result.rows.map((row: { id: string }) => row.id)
+  try {
+    const result = await query<{ id: string }>('SELECT id FROM prompts')
+    return result.rows.map((row: { id: string }) => row.id)
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return []
+    }
+    throw error
+  }
+}
+
+export async function updatePromptInDb(
+  id: string,
+  authorId: string,
+  data: { title: string; content: string; categoryId: string; tags: string[] }
+): Promise<Prompt> {
+  // Verify ownership
+  const existing = await query<{ author_id: string }>(
+    'SELECT author_id FROM prompts WHERE id = $1 LIMIT 1',
+    [id]
+  )
+  if (!existing.rows[0]) {
+    throw new Error('提示词不存在')
+  }
+  if (existing.rows[0].author_id !== authorId) {
+    throw new Error('无权限编辑此提示词')
+  }
+
+  await query(
+    `UPDATE prompts SET title = $1, content = $2, category_id = $3, updated_at = NOW()
+     WHERE id = $4`,
+    [data.title, data.content, data.categoryId, id]
+  )
+
+  // Replace tags: delete existing, insert new
+  await query('DELETE FROM prompt_tags WHERE prompt_id = $1', [id])
+  for (const tag of data.tags) {
+    const normalizedTag = tag.trim()
+    if (!normalizedTag) continue
+    const createdTag = await query<{ id: string }>(
+      `INSERT INTO tags (name)
+       VALUES ($1)
+       ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+       RETURNING id`,
+      [normalizedTag]
+    )
+    const tagId = createdTag.rows[0]?.id
+    if (!tagId) continue
+    await query(
+      `INSERT INTO prompt_tags (prompt_id, tag_id)
+       VALUES ($1, $2)
+       ON CONFLICT (prompt_id, tag_id) DO NOTHING`,
+      [id, tagId]
+    )
+  }
+
+  const updated = await getPromptByIdFromDb(id)
+  if (!updated) throw new Error('更新失败')
+  return updated
+}
+
+export async function deletePromptInDb(id: string, authorId: string): Promise<void> {
+  // Verify ownership
+  const existing = await query<{ author_id: string }>(
+    'SELECT author_id FROM prompts WHERE id = $1 LIMIT 1',
+    [id]
+  )
+  if (!existing.rows[0]) {
+    throw new Error('提示词不存在')
+  }
+  if (existing.rows[0].author_id !== authorId) {
+    throw new Error('无权限删除此提示词')
+  }
+
+  // Cascade: delete related records first
+  await query('DELETE FROM prompt_tags WHERE prompt_id = $1', [id])
+  await query('DELETE FROM likes WHERE prompt_id = $1', [id])
+  await query('DELETE FROM favorites WHERE prompt_id = $1', [id])
+  await query('DELETE FROM prompts WHERE id = $1', [id])
 }

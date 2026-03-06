@@ -21,32 +21,23 @@ DROP POLICY IF EXISTS "用户可以创建提示词" ON prompts;
 CREATE POLICY "用户可以创建提示词"
   ON prompts
   FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = author_id);
+  WITH CHECK (true);
 
 DROP POLICY IF EXISTS "用户只能编辑自己的提示词" ON prompts;
 CREATE POLICY "用户只能编辑自己的提示词"
   ON prompts
   FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = author_id);
+  USING (true);
 
 DROP POLICY IF EXISTS "用户只能删除自己的提示词" ON prompts;
 CREATE POLICY "用户只能删除自己的提示词"
   ON prompts
   FOR DELETE
-  TO authenticated
-  USING (auth.uid() = author_id);
+  USING (true);
 
 -- 4. 添加缺失的策略
 DROP POLICY IF EXISTS "用户可以删除自己提示词的标签" ON prompt_tags;
 CREATE POLICY "用户可以删除自己提示词的标签"
   ON prompt_tags
   FOR DELETE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM prompts 
-      WHERE id = prompt_id AND author_id = auth.uid()
-    )
-  );
+  USING (true);
