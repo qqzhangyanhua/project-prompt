@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { getUserPrompts, getUserFavorites } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
-import type { Prompt } from '@/lib/supabase'
+import type { Prompt } from '@/lib/type'
 import useSWR from 'swr'
 
 export default function ProfilePage() {

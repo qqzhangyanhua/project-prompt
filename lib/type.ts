@@ -1,23 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-const supabaseAnonKey: string = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  // 不在构建期抛错，避免本地未配置环境变量时无法构建；在运行期给出明确告警
-  // 配置方式见 README 的环境变量说明
-  console.warn('[Supabase] 缺少环境变量：请设置 NEXT_PUBLIC_SUPABASE_URL 与 NEXT_PUBLIC_SUPABASE_ANON_KEY')
+export interface AppUser {
+  id: string
+  email: string
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// 数据库类型定义
 export interface UserProfile {
   id: string
   username: string
   display_name?: string
   bio?: string
   avatar_url?: string
+  email?: string
   created_at: string
   updated_at: string
 }
@@ -47,7 +39,6 @@ export interface Prompt {
   favorites_count: number
   created_at: string
   updated_at: string
-  // 关联数据
   categorieslabel?: Category
   user_profiles?: UserProfile
   tags?: Tag[]

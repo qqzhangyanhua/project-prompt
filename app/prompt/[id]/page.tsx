@@ -8,11 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { getPromptById } from '@/lib/prompts'
-import { cn } from '@/lib/utils'
 import { PromptActions } from '@/components/PromptActions'
-import type { Tag as PromptTag } from '@/lib/supabase'
-import { cookies } from 'next/headers'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Tag as PromptTag } from '@/lib/type'
+import { getSessionIdentity } from '@/lib/server/session'
 import type { Metadata } from 'next'
 
 interface PromptDetailPageProps {
@@ -28,12 +26,7 @@ export async function generateStaticParams() {
 }
 
 export default async function PromptDetailPage({ params }: PromptDetailPageProps) {
-  // 读取服务端会话，获取当前用户ID，以便个性化回显点赞/收藏状态
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getSessionIdentity()
 
   const prompt = await getPromptById(params.id, user?.id)
   

@@ -11,34 +11,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-This is a **PromptHub** application - an AI prompt sharing platform built with Next.js 13 App Router, TypeScript, and Supabase.
+This is a **PromptHub** application - an AI prompt sharing platform built with Next.js 13 App Router, TypeScript, and direct PostgreSQL access.
 
 ### Tech Stack
 - **Frontend**: Next.js 13 with App Router, React 18, TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui component library
-- **Backend**: Supabase (PostgreSQL database, authentication, RLS)
+- **Backend**: PostgreSQL + Next.js Route Handlers + cookie sessions
 - **Build**: Configured for static export (`output: 'export'` in next.config.js)
 
 ### Key Architecture Patterns
 
 **Database Architecture**:
-- Uses Supabase with Row Level Security (RLS) enabled
+- Uses PostgreSQL with migration SQL files under `supabase/migrations/`
 - Core tables: `user_profiles`, `categorieslabel`, `prompts`, `tags`, `prompt_tags`, `likes`, `favorites`
 - Automatic trigger functions update like/favorite counts on prompts
 - Comprehensive foreign key relationships with cascade deletes
 
 **Authentication Flow**:
-- Supabase Auth handles user sessions
-- Custom user profiles extend auth.users with additional fields (username, display_name, bio, avatar_url)
-- Authentication functions in `lib/auth.ts` handle signup with profile creation
+- Custom auth based on `user_profiles` + `user_sessions`
+- Session cookie is managed by Next.js route handlers under `app/api/auth/*`
+- Frontend auth state is loaded via `lib/auth.ts` and `stores/authStore.ts`
 
 **Component Structure**:
 - `components/ui/` contains shadcn/ui base components
 - `components/` contains app-specific components (Header, Layout, PromptCard, etc.)
-- All components use TypeScript with proper type definitions from `lib/supabase.ts`
+- All components use TypeScript type definitions from `lib/type.ts`
 
 **Data Management**:
-- TypeScript interfaces defined in `lib/supabase.ts` for all database entities
+- TypeScript interfaces are centralized in `lib/type.ts`
 - Custom hooks in `hooks/` for reusable state logic (useAuth, use-toast)
 - API functions organized in `lib/` directory (auth.ts, prompts.ts)
 
@@ -47,7 +47,7 @@ This is a **PromptHub** application - an AI prompt sharing platform built with N
 - **Static Export**: Application is configured for static export, images are unoptimized
 - **Path Aliases**: Uses `@/*` alias pointing to root directory (configured in tsconfig.json)
 - **Styling**: Uses CSS custom properties for theming, supports dark mode via class strategy
-- **Database**: Requires Supabase environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- **Database**: Requires `DATABASE_URL`
 
 ### Database Schema Key Points
 
@@ -60,7 +60,7 @@ This is a **PromptHub** application - an AI prompt sharing platform built with N
 ### Development Workflow
 
 When working with this codebase:
-1. Database changes should be made via Supabase migrations in `supabase/migrations/`
+1. Database changes should be made via SQL migrations in `supabase/migrations/`
 2. Component development follows shadcn/ui patterns - check existing components for consistency
-3. All database interactions should use the typed interfaces from `lib/supabase.ts`
+3. All database interactions should use the typed interfaces from `lib/type.ts`
 4. Authentication state should be managed through the custom useAuth hook

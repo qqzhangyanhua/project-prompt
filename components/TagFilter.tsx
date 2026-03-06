@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { Tag } from '@/lib/supabase'
+import type { Tag } from '@/lib/type'
 import { Badge } from '@/components/ui/badge'
 
 interface TagFilterProps {
@@ -78,5 +78,4 @@ export function TagFilter({ tags }: TagFilterProps) {
     </div>
   )
 }
-
 

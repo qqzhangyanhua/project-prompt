@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import type { Prompt } from "@/lib/supabase";
+import type { Prompt } from "@/lib/type";
 import { toggleLike, toggleFavorite } from "@/lib/prompts";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";

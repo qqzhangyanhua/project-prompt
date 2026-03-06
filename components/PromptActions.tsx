@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { toggleLike, toggleFavorite } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
-import type { Prompt } from '@/lib/supabase'
+import type { Prompt } from '@/lib/type'
 import { toast } from 'sonner'
 import { useSWRConfig } from 'swr'
 

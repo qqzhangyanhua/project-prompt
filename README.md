@@ -20,14 +20,14 @@ PromptHub 是一个面向 AI 爱好者、内容创作者和开发者的提示词
 ### 🔧 技术栈
 - **前端**: Next.js 13 + React + TypeScript
 - **样式**: Tailwind CSS + shadcn/ui
-- **后端**: Supabase (数据库 + 认证 + 存储)
+- **后端**: 直连 PostgreSQL + Next.js Route Handlers
 - **部署**: 支持 Vercel、Netlify 等平台
 
 ## 快速开始
 
 ### 环境要求
 - Node.js 18+
-- Supabase 账号
+- PostgreSQL 15+
 
 ### 安装步骤
 
@@ -39,7 +39,7 @@ cd prompthub
 
 2. **安装依赖**
 ```bash
-npm install
+pnpm install
 ```
 
 3. **配置环境变量**
@@ -47,25 +47,35 @@ npm install
 cp .env.example .env.local
 ```
 
-编辑 `.env.local` 文件，填入你的 Supabase 配置：
+编辑 `.env.local` 文件，填入 PostgreSQL 连接串：
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+DATABASE_URL=postgresql://username:password@localhost:5432/prompthub
 ```
 
 4. **数据库设置**
-- 在 Supabase 项目中执行 `supabase/migrations/create_prompthub_schema.sql` 文件
-- 或者使用 Supabase CLI：
+- 推荐使用内置脚本执行迁移与 seed：
 ```bash
-supabase db reset
+pnpm run db:migrate
+pnpm run db:seed
 ```
+
+也可手动执行 SQL 文件（顺序同上）。
+
+测试账号（seed 数据）：
+- email: `demo@prompthub.local`
+- password: `Test@123456`
 
 5. **启动开发服务器**
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 访问 `http://localhost:3000` 即可看到应用。
+
+数据库健康检查：
+```bash
+curl http://localhost:3000/api/health/db
+```
 
 ## 项目结构
 
@@ -84,7 +94,7 @@ prompthub/
 │   ├── PromptCard.tsx    # 提示词卡片
 │   └── ...
 ├── lib/                  # 工具函数和配置
-│   ├── supabase.ts       # Supabase 客户端
+│   ├── server/           # PostgreSQL 服务端查询与会话逻辑
 │   ├── auth.ts           # 认证相关
 │   └── prompts.ts        # 提示词相关API
 ├── hooks/                # 自定义 React Hooks
@@ -130,14 +140,13 @@ prompthub/
 
 ### Vercel 部署
 ```bash
-npm run build
+pnpm run build
 vercel --prod
 ```
 
 ### 环境变量配置
 确保在部署平台配置以下环境变量：
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `DATABASE_URL`
 
 ## 贡献指南
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { PromptCard } from './PromptCard'
 import { Button } from '@/components/ui/button'
-import type { Prompt } from '@/lib/supabase'
+import type { Prompt } from '@/lib/type'
 
 interface PromptListProps {
   prompts: Prompt[]

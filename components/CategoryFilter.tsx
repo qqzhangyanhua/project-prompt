@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { Category } from '@/lib/supabase'
+import type { Category } from '@/lib/type'
 
 interface CategoryFilterProps {
   categories: Category[]

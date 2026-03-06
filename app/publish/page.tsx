@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { createPrompt, getCategories } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
-import type { Category } from '@/lib/supabase'
+import type { Category } from '@/lib/type'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'

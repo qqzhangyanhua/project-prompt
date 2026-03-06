@@ -10,7 +10,7 @@ import { TagFilter } from '@/components/TagFilter'
 import { Button } from '@/components/ui/button'
 import { getPrompts, getCategories, getTags } from '@/lib/prompts'
 import { useAuth } from '@/hooks/useAuth'
-import type { Prompt, Category } from '@/lib/supabase'
+import type { Prompt, Category } from '@/lib/type'
 import useSWR from 'swr'
 
 export default function HomePage() {

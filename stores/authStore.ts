@@ -1,10 +1,9 @@
 import { create } from 'zustand'
-import type { User } from '@supabase/supabase-js'
-import type { UserProfile } from '@/lib/supabase'
-import { supabase } from '@/lib/supabase'
+import type { AppUser, UserProfile } from '@/lib/type'
+import { AUTH_STATE_CHANGED_EVENT, getCurrentUser, getUserProfile } from '@/lib/auth'
 
 interface AuthState {
-  user: User | null
+  user: AppUser | null
   profile: UserProfile | null
   loading: boolean
   isAuthenticated: boolean
@@ -15,7 +14,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  setUser: (user: User | null) => void
+  setUser: (user: AppUser | null) => void
   setProfile: (profile: UserProfile | null) => void
   setLoading: (loading: boolean) => void
   fetchUserProfile: (userId: string) => Promise<void>
@@ -23,7 +22,7 @@ interface AuthActions {
   clear: () => void
 }
 
-export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
+export const useAuthStore = create<AuthState & AuthActions>((set: (partial: Partial<AuthState>) => void, get: () => AuthState & AuthActions) => ({
   // 状态
   user: null,
   profile: null,
@@ -35,14 +34,14 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   lastProfileFetchTime: 0,
 
   // 操作
-  setUser: (user) => set({ 
+  setUser: (user: AppUser | null) => set({ 
     user, 
     isAuthenticated: !!user 
   }),
 
-  setProfile: (profile) => set({ profile }),
+  setProfile: (profile: UserProfile | null) => set({ profile }),
 
-  setLoading: (loading) => set({ loading }),
+  setLoading: (loading: boolean) => set({ loading }),
 
   fetchUserProfile: async (userId: string) => {
     const currentState = get()
@@ -62,11 +61,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
     set({ profileLoading: true })
     
     try {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      const profile = await getUserProfile(userId)
       
       set({ profile, lastProfileFetchTime: now })
     } catch (error) {
@@ -84,8 +79,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
     set({ loading: true })
     
     try {
-      // 获取当前用户
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getCurrentUser()
       set({ user, isAuthenticated: !!user })
       
       // 如果用户存在，获取用户资料
@@ -94,26 +88,28 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       }
       
       // 设置认证状态变化监听器（只设置一次）
-      if (!state.subscription) {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            const newUser = session?.user ?? null
-            const currentState = get()
-            
-            // 只有在用户真正变化时才更新状态
-            if (newUser?.id !== currentState.user?.id) {
-              set({ user: newUser, isAuthenticated: !!newUser })
-              
-              if (newUser) {
-                await get().fetchUserProfile(newUser.id)
-              } else {
-                set({ profile: null })
-              }
+      if (!state.subscription && typeof window !== 'undefined') {
+        const handler = async () => {
+          const currentState = get()
+          const nextUser = await getCurrentUser()
+          if (nextUser?.id !== currentState.user?.id) {
+            set({ user: nextUser, isAuthenticated: !!nextUser })
+            if (nextUser) {
+              await get().fetchUserProfile(nextUser.id)
+            } else {
+              set({ profile: null })
             }
           }
-        )
-        
-        set({ subscription })
+        }
+
+        window.addEventListener(AUTH_STATE_CHANGED_EVENT, handler)
+        set({
+          subscription: {
+            unsubscribe: () => {
+              window.removeEventListener(AUTH_STATE_CHANGED_EVENT, handler)
+            },
+          },
+        })
       }
       
       set({ initialized: true })
