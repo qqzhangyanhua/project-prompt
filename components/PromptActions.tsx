@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Copy, Heart, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toggleLike, toggleFavorite } from '@/lib/prompts'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import type { Prompt } from '@/lib/type'
 import { toast } from 'sonner'
@@ -15,7 +15,8 @@ interface PromptActionsProps {
 }
 
 export function PromptActions({ prompt }: PromptActionsProps) {
-  const { user, isAuthenticated } = useAuth()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const user = useAuthStore((s) => s.user)
   const { mutate } = useSWRConfig()
   const [isLiked, setIsLiked] = useState(prompt.is_liked || false)
   const [isFavorited, setIsFavorited] = useState(prompt.is_favorited || false)

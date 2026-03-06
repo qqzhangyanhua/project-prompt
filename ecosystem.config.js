@@ -33,6 +33,7 @@ module.exports = {
       env_production: {
         NODE_ENV: "production",
         PORT: 3000,
+        SECURE_COOKIE: "false",
         // 敏感变量建议通过服务器 .env 文件注入，不要写在此处
       },
 

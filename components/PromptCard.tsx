@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { Prompt } from "@/lib/type";
 import { toggleLike, toggleFavorite } from "@/lib/prompts";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
 import { useSWRConfig } from 'swr';
 
@@ -33,7 +33,8 @@ interface PromptCardProps {
 }
 
 export function PromptCard({ prompt, onUpdate }: PromptCardProps) {
-  const { isAuthenticated, user } = useAuth();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const { mutate } = useSWRConfig();
   const [isLiked, setIsLiked] = useState(prompt.is_liked || false);
   const [isFavorited, setIsFavorited] = useState(prompt.is_favorited || false);
