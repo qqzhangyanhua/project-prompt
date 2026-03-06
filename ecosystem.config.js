@@ -13,9 +13,9 @@ module.exports = {
     {
       // ── 基础配置 ──────────────────────────────────────────────
       name: "ai-prompt-platform",
-      script: "node_modules/.bin/next",
+      script: "npm",
       args: "start",
-      cwd: __dirname, // 确保从 ecosystem.config.js 所在目录启动
+      cwd: "/opt/project-prompts/project-prompt", // 确保从 ecosystem.config.js 所在目录启动
 
       // ── 进程模式 ──────────────────────────────────────────────
       // fork:    单进程，Next.js 自带高效异步，推荐普通服务器使用

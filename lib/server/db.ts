@@ -18,7 +18,7 @@ function getDbPool(): Pool {
   const pool = new Pool({
     connectionString,
     max: 10,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   })
 
   if (process.env.NODE_ENV !== 'production') {
