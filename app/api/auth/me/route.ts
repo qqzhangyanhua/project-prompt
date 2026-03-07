@@ -13,7 +13,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies()
   const referer = headerStore.get('referer') || 'N/A'
   const userAgent = headerStore.get('user-agent') || 'N/A'
-  const hasSessionCookie = cookieStore.has('session_token')
+  const hasSessionCookie = cookieStore.has('prompthub_session')
 
   console.log(
     `[auth/me] [${reqId}] 请求开始 | ` +

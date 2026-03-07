@@ -56,11 +56,13 @@ export async function createUserSession(userId: string): Promise<void> {
     [tokenHash, userId]
   )
 
+  const isSecure = process.env.SECURE_COOKIE === 'true'
+
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE_NAME, rawToken, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production' && process.env.SECURE_COOKIE !== 'false',
+    secure: isSecure,
     path: '/',
     maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
   })
@@ -77,7 +79,7 @@ export async function clearUserSession(): Promise<void> {
   cookieStore.set(SESSION_COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production' && process.env.SECURE_COOKIE !== 'false',
+    secure: process.env.SECURE_COOKIE === 'true',
     path: '/',
     maxAge: 0,
   })
